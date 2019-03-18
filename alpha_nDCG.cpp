@@ -67,17 +67,19 @@ class AlphaNDCG{
         }
 
         void calculate_Alpha_nDCG(dictString ranking_query_doc, ll depth=20ll) {
+        	// TODO Finish this function and finish the other functions
         	compute_Alpha_DCG(ranking_query_doc, depth);
 
         	string query;
-        	ll local_depth;
+        	ll local_depth, i;
+        	vector<string> idealRanking;
+        	dcgStruct dcg_ideal_ranking;
+        	dictString auxiliarDict;
 
         	for(auto iteratorQuery : ranking_query_doc) {
         		query = iteratorQuery.first;
 
         		local_depth = min(depth, (ll)ranking_query_doc[query].size());
-        		// TODO Finish this function and finish the other functions
-        		/*
  				idealRanking = get_ideal_ranking(query, ranking_query_doc[query], local_depth);
  				auxiliarDict.clear();
  				auxiliarDict[query] = idealRanking;
@@ -91,13 +93,56 @@ class AlphaNDCG{
  					} else {
  						this->ndcg_values[query][i] = (this->dcg_values[query][i]/(double)dcg_ideal_ranking[query][i]);
  					}
- 				}*/
+ 				}
         	}
         }
 
-        
+        vector<string> get_ideal_ranking(string query, vector<string> actual_ranking, ll depth=20ll) {
+        	string topic, whoIsBest;
+        	double bestValue, value;
+        	vector<string> ideal_ranking;
+        	map<string,ll> topics_number_of_occurrences;
+        	map<string,set<string>> topics_intersection;
+        	set<string> topics_query, doc_candidates, topics_of_best; 
 
+        	topics_query = createSet(this->query_topics_dict[query]);
+        	
+        	doc_candidates = createSet(actual_ranking);
 
+        	while((ll)doc_candidates.size()>0 and (ll)ideal_ranking.size()<depth) {
+        		bestValue = numeric_limits<double>::min();
+        		whoIsBest = "noOne";
+        		topics_of_best.clear();
+
+        		// Memoization
+        		topics_intersection.clear();
+        		for(auto document : doc_candidates) {
+        			topics_intersection[document] = intersection_set(createSet(this->doc_topics_dict[document]), topics_query);
+        		}
+
+        		for(auto document : doc_candidates) {
+        			value = 0.0;
+
+        			for(auto iteratorTopic : topics_intersection) {
+        				topic = iteratorTopic.first;
+        				value += myPow((1 - this->alpha),topics_number_of_occurrences[topic]) / logInBase(2+ideal_ranking.size(),2);
+        			}
+
+        			if(value > bestValue) {
+        				bestValue = value;
+        				whoIsBest = document;
+        				topics_of_best = topics_intersection[document];
+        			}
+        		}
+
+        		for(auto topic : topics_of_best) {
+        			topics_number_of_occurrences[topic]++;
+        		}
+        		ideal_ranking.push_back(whoIsBest);
+        		doc_candidates.erase(whoIsBest);
+        	}
+        	return ideal_ranking;
+        }
 
         /* BEGIN: Util Functions */
         set<string> createSet(vector<string>& arr) {
