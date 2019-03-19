@@ -162,6 +162,54 @@ class AlphaNDCG{
         	return ideal_ranking;
         }
 
+        vector<double> compute_single_Alpha_DCG(string query, vector<string> ranking, ll depth=20ll) {
+        	double value;
+        	ll local_depth, i;
+        	vector<double> local_dcg_values;
+        	set<string> topics_query, topics_intersection;
+        	map<string,ll> topics_number_of_occurrences;
+
+        	topics_query = createSet(this->query_topics_dict[query]);
+
+        	local_depth = min(depth,(ll)ranking.size());
+        	local_dcg_values.resize(local_depth,0.0);
+
+        	value = 0.0;
+        	for(i=0; i<local_depth; i++) {
+        		topics_intersection = intersection_set(createSet(this->doc_topics_dict[ranking[i]]), topics_query);
+
+        		for(auto topic : topics_intersection) {
+        			value += myPow((1 - this->alpha), topics_number_of_occurrences[topic]) / logInBase(2+i,2);
+        			topics_number_of_occurrences[topic]++;
+        		}
+        		local_dcg_values[i] = value;
+        	}
+        	return local_dcg_values;
+        }
+
+
+        vector<double> compute_single_Alpha_nDCG(string query, vector<string> target_ranking, vector<string> ideal_ranking, ll depth=20ll) {        	
+        	ll local_depth, i;
+        	vector<double> dcg_target_ranking, dcg_ideal_ranking, ndcg_values;
+
+        	local_depth = min(depth, min((ll)target_ranking.size(), (ll)ideal_ranking.size()));
+
+        	dcg_target_ranking = compute_single_Alpha_DCG(query, target_ranking, local_depth);
+        	dcg_ideal_ranking  = compute_single_Alpha_DCG(query, ideal_ranking, local_depth);
+
+        	ndcg_values.resize(local_depth,0.0);
+
+        	for(i=0; i<local_depth; i++) {
+        		if(dcg_target_ranking[i]==0.0){
+        			ndcg_values[i] = 0.0;
+        		} else {
+        			ndcg_values[i] = dcg_target_ranking[i]/(double)dcg_ideal_ranking[i];
+        		}
+        	}
+        	return ndcg_values;
+        }
+
+
         /* BEGIN: Util Functions */
         set<string> createSet(vector<string>& arr) {
         	set<string> ans;
@@ -203,13 +251,13 @@ class AlphaNDCG{
 
 
 int main() {
-
-	/* Query-Topics Dictionary */
+/*
+	// Query-Topics Dictionary 
 	dictString queryDict;
 	queryDict["QA Example"] = {"85.1", "85.2", "85.3", "85.4", "85.5", "85.6"};
 	queryDict["QB Example"] = {"85.1", "85.2", "85.3", "85.4", "85.5", "85.6"};
 
-	/* Doc-Topics Dictionary */
+	// Doc-Topics Dictionary 
 	dictString docDict;
 	docDict["a"] = {"85.2", "85.4"};
 	docDict["b"] = {"85.2"};
@@ -222,7 +270,7 @@ int main() {
 	docDict["i"] = {};
 	docDict["j"] = {};
 
-	/* Ranking Query-Doc Dictionary */
+	// Ranking Query-Doc Dictionary 
 	dictString rankingDict;
 	rankingDict["QA Example"] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
 	rankingDict["QB Example"] = {"a", "e", "g", "b", "f", "c", "h", "i", "j", "d"};
@@ -252,6 +300,22 @@ int main() {
 		}
 		cout << endl;
 	}
-	
+
+
+	// Testing single calculation //
+	cout << endl << endl << "nDCG Values - Single" << endl;
+	vector<string> ideal_ranking;
+	ideal_ranking = myAlpha.get_ideal_ranking("QA Example", rankingDict["QA Example"]);
+	cout << "QB Example: ";
+	for(auto value : myAlpha.compute_single_Alpha_nDCG("QA Example", rankingDict["QB Example"], ideal_ranking)) {
+		cout << value << " ";
+	}
+	cout << endl;
+	cout << "QA Example: ";
+	for(auto value : myAlpha.compute_single_Alpha_nDCG("QA Example", rankingDict["QA Example"], ideal_ranking)) {
+		cout << value << " ";
+	}
+	cout << endl;
+*/	
     return 0;
 }
