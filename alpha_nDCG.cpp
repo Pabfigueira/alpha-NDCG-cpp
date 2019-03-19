@@ -25,12 +25,24 @@ class AlphaNDCG{
             this->alpha = alpha;
         }
 
+        double get_alpha() {
+        	return this->alpha;
+        }
+
         void load_query_topics(dictString query_topics) {
             this->query_topics_dict = query_topics;
         }
 
         void load_doc_topics(dictString doc_topics) {
             this->doc_topics_dict = doc_topics;
+        }
+
+        dcgStruct get_dcg_values() {
+        	return this->dcg_values;
+        }
+
+        dcgStruct get_ndcg_values() {
+        	return this->ndcg_values;
         }
 
         dcgStruct calculate_Alpha_DCG(dictString ranking_query_doc, ll depth=20ll) {
@@ -81,6 +93,13 @@ class AlphaNDCG{
 
         		local_depth = min(depth, (ll)ranking_query_doc[query].size());
  				idealRanking = get_ideal_ranking(query, ranking_query_doc[query], local_depth);
+
+ 				cout << "Printing ideal ranking: " << query << endl;
+ 				for(auto elem : idealRanking) {
+ 					cout << elem << " ";
+ 				}
+ 				cout << endl;
+
  				auxiliarDict.clear();
  				auxiliarDict[query] = idealRanking;
  				dcg_ideal_ranking = calculate_Alpha_DCG(auxiliarDict,local_depth);
@@ -110,7 +129,7 @@ class AlphaNDCG{
         	doc_candidates = createSet(actual_ranking);
 
         	while((ll)doc_candidates.size()>0 and (ll)ideal_ranking.size()<depth) {
-        		bestValue = numeric_limits<double>::min();
+        		bestValue = numeric_limits<double>::lowest();
         		whoIsBest = "noOne";
         		topics_of_best.clear();
 
@@ -123,9 +142,8 @@ class AlphaNDCG{
         		for(auto document : doc_candidates) {
         			value = 0.0;
 
-        			for(auto iteratorTopic : topics_intersection) {
-        				topic = iteratorTopic.first;
-        				value += myPow((1 - this->alpha),topics_number_of_occurrences[topic]) / logInBase(2+ideal_ranking.size(),2);
+        			for(auto topic : topics_intersection[document]) {
+        				value += myPow((1 - this->alpha),topics_number_of_occurrences[topic]) / logInBase(2+(ll)ideal_ranking.size(), 2);
         			}
 
         			if(value > bestValue) {
@@ -185,5 +203,55 @@ class AlphaNDCG{
 
 
 int main() {
+
+	/* Query-Topics Dictionary */
+	dictString queryDict;
+	queryDict["QA Example"] = {"85.1", "85.2", "85.3", "85.4", "85.5", "85.6"};
+	queryDict["QB Example"] = {"85.1", "85.2", "85.3", "85.4", "85.5", "85.6"};
+
+	/* Doc-Topics Dictionary */
+	dictString docDict;
+	docDict["a"] = {"85.2", "85.4"};
+	docDict["b"] = {"85.2"};
+	docDict["c"] = {"85.2"};
+	docDict["d"] = {};
+	docDict["e"] = {"85.1", "85.6"};
+	docDict["f"] = {"85.1"};
+	docDict["g"] = {"85.3"};
+	docDict["h"] = {"85.1"};
+	docDict["i"] = {};
+	docDict["j"] = {};
+
+	/* Ranking Query-Doc Dictionary */
+	dictString rankingDict;
+	rankingDict["QA Example"] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
+	rankingDict["QB Example"] = {"a", "e", "g", "b", "f", "c", "h", "i", "j", "d"};
+
+	AlphaNDCG myAlpha = AlphaNDCG(queryDict, docDict);
+	myAlpha.calculate_Alpha_nDCG(rankingDict);
+
+	string query;
+
+	cout << "DCG Values" << endl;
+	for(auto iteratorQuery : myAlpha.get_dcg_values()) {
+		query = iteratorQuery.first;
+		cout << query << ": "; 
+		for(auto elem : iteratorQuery.second) {
+			cout << elem << " ";
+		}
+		cout << endl;
+	}
+	cout << endl << endl;
+	
+	cout << "nDCG Values" << endl;
+	for(auto iteratorQuery : myAlpha.get_ndcg_values()) {
+		query = iteratorQuery.first;
+		cout << query << ": ";
+		for(auto elem : iteratorQuery.second) {
+			cout << elem << " ";
+		}
+		cout << endl;
+	}
+	
     return 0;
 }
