@@ -79,7 +79,6 @@ class AlphaNDCG{
         }
 
         void calculate_Alpha_nDCG(dictString ranking_query_doc, ll depth=20ll) {
-        	// TODO Finish this function and finish the other functions
         	compute_Alpha_DCG(ranking_query_doc, depth);
 
         	string query;
